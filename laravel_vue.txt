@@ -1,0 +1,700 @@
+1. Primer paso, creamos un proyecto laravel
+    composer create-project laravel/laravel example-app
+
+2. Configuramos la base de datos en el fichero .env
+
+3. Añadimos el paquete de laravel Breeze a nuestro proyecto
+    composer require laravel/breeze --dev
+
+4. Añadimos la siguiente linea de comando para agregar Vue
+php artisan breeze:install vue
+
+5. Migramos, instalamos y arrancamos el servidor de vue (parte Front)
+    php artisan migrate
+    npm install
+    npm run dev
+
+6. Configuramos el fichero vite.config.js
+Debemos tener estos 3 import
+    import { defineConfig } from 'vite';
+    import laravel from 'laravel-vite-plugin';
+    import vue from '@vitejs/plugin-vue';
+
+Y este plugin:
+     vue({
+            template: {
+                transformAssetUrls: {
+                    base: null,
+                    includeAbsolute: false,
+                },
+            },
+        }),
+
+7. A continuación añadimos vuetify a trvés de la consola bash
+    vue add vuetify
+
+8.Una vez que se agregue tendremos que volver a importar lo siguiente en el vite.config.js ya que se elimina por el vuetify
+    import vue from '@vitejs/plugin-vue';
+
+    También añadimos las siguientes lineas dentro de plugin
+
+    vuetify({
+            autoImport: true,
+    }),
+
+9. También se nos habrá creado la carpeta src de esta copiaremos los ficheros que hay dentro de la carpeta plugins (que son los js que contienen
+los estilos y la fuente). Los pegamos en resources/js
+
+10. configuramos el fichero app.js (También dentro de esta carpeta)
+    import vuetify from './vuetify';
+    import { loadFonts } from './webfontloader';
+
+    Carfamos las fuentes y usamos el estilo
+
+    loadFonts();
+    .use(vuetify)
+
+11. Todas nuestras vistas .vue se cargaran en nuestro archivo dentro de views en el app.blade.php gracias al @inertia
+
+12. Nos vamos a crear un layout:
+<script>
+
+import { Link } from '@inertiajs/vue3';
+
+export default {
+    data() {
+        return {
+            canLogin: Boolean,
+            canRegister: Boolean,
+        }
+    },
+    components: {
+        Link,
+    }
+}
+
+</script>
+
+<template>
+
+    <v-app id="inspire">
+        <v-app-bar flat color="grey-darken-4">
+            <v-container class="fill-height d-flex align-center">
+
+                <v-btn variant="text" class="text-cyan-accent-2">
+                    TIENDA
+                </v-btn>
+
+                <v-spacer></v-spacer>
+
+                <div v-if="canLogin" class="hidden fixed top-0 right-0 px-6 py-4 sm:block">
+                    <v-btn variant="text" v-if="$page.props.auth.user" class="mt-1">
+                        <Link :href="route('dashboard')" class="text-cyan-accent-2 text-decoration-none">DASHBOARD
+                        </Link>
+                    </v-btn>
+
+
+                    <template v-else>
+                        <v-btn variant="text">
+                            <Link :href="route('login')" class="text-cyan-accent-2 text-decoration-none">Log
+                            in</Link>
+                        </v-btn>
+
+                        <v-btn variant="text" v-if="canRegister">
+                            <Link :href="route('register')" class="text-cyan-accent-2 text-decoration-none">
+                            Register</Link>
+                        </v-btn>
+
+                    </template>
+                </div>
+
+            </v-container>
+        </v-app-bar>
+
+
+        <v-main class="bg-grey-darken-4 mt-5">
+            <v-container>
+                <v-row>
+                    <v-col cols="12">
+                        <v-sheet min-height="70vh" rounded="lg" theme="dark">
+                            <slot></slot>
+                        </v-sheet>
+                    </v-col>
+                </v-row>
+            </v-container>
+        </v-main>
+
+    </v-app>
+
+</template>
+
+
+13. Nos creamos una vista y cargamos el Layout de antes
+
+14 .Nos creamos dentro de views una carpeta Auth para nuestro Login y Registro
+15. También nos creamos un Nuevo Layout para estas vistas
+
+<script setup>
+
+</script>
+
+<template>
+   <v-container fluid>
+        <v-row justify="center" class="h-screen m-0">
+            <v-col cols="lg-6 md-12 sm-12" class="mt-3">
+                <v-container class="text-center">
+
+                </v-container>
+                <slot></slot>
+            </v-col>
+        </v-row>
+    </v-container>
+</template>
+
+16. Importamos este Layout en nuestro Register y Login
+17 nos creamos un components uno para los input que sean distintos del file y otro para un boton de tipo submit
+
+<script setup>
+import { onMounted, ref } from 'vue';
+
+defineProps(['modelValue']);
+
+defineEmits(['update:modelValue']);
+
+const input = ref(null);
+
+onMounted(() => {
+    if (input.value.hasAttribute('autofocus')) {
+        input.value.focus();
+    }
+});
+
+defineExpose({ focus: () => input.value.focus() });
+</script>
+
+<template>
+
+    <v-text-field :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" variant="solo"
+        ref="input" />
+</template>
+
+
+
+<script setup>
+defineProps({
+    type: {
+        type: String,
+        default: 'submit',
+    },
+});
+</script>
+
+<template>
+
+    <v-btn variant="outlined" :type="type">
+        <slot />
+    </v-btn>
+</template>
+
+18. Configuremos nuestro Registro
+
+<script setup>
+import Auth from '@/Layouts/Auth.vue';
+import TextInput from '@/Components/TextInput.vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import BtnPrimary from '@/Components/BtnPrimary.vue'
+
+const form = useForm({
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+});
+
+const submit = () => {
+    form.post(route('register'), {
+        onFinish: () => form.reset('password', 'password_confirmation'),
+    });
+};
+</script>
+
+<template>
+
+    <Head>Register</Head>
+
+    <Auth>
+        <v-card theme="dark" class="cartaAuth" id="cartaRegistro">
+            <v-container>
+                <v-card-title class="text-cyan-accent-2 mt-3">BIENVENIDO A MUSIC WORLD</v-card-title>
+                <v-form @submit.prevent="submit">
+                    <TextInput id="name" label="Nombre de usuario" type="text" v-model="form.name" required autofocus />
+                    <!-- <InputError :message="form.errors.name" /> -->
+
+                    <TextInput id="email" label="Correo electronico" type="email" v-model="form.email" required />
+                    <!-- <InputError :message="form.errors.email" /> -->
+
+                    <TextInput id="password" label="Contraseña" type="password" v-model="form.password" required />
+                    <!-- <InputError :message="form.errors.password" /> -->
+
+                    <TextInput id="password_confirmation" label="Confirmar contreseña" type="password"
+                        v-model="form.password_confirmation" required />
+                    <!-- <InputError :message="form.errors.password_confirmation" /> -->
+                    <v-card-actions>
+                        <div class="flex items-center justify-end">
+                            <Link :href="route('login')" class="text-decoration-none text-cyan-accent-2">
+                            ¿Ya estás registrado?
+                            </Link>
+
+                            <BtnPrimary class="ml-4 bg-cyan-accent-2" :class="{ 'opacity-25': form.processing }"
+                                id="btnRegistro" :disabled="form.processing">
+                                Registrar
+                            </BtnPrimary>
+                        </div>
+                    </v-card-actions>
+                </v-form>
+            </v-container>
+        </v-card>
+    </Auth>
+
+</template>
+
+19.Lo mismo con el login
+
+<script setup>
+import Auth from '@/Layouts/Auth.vue';
+import TextInput from '@/Components/TextInput.vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import BtnPrimary from '@/Components/BtnPrimary.vue'
+
+const form = useForm({
+
+    email: '',
+    password: '',
+
+});
+
+const submit = () => {
+
+    form.post(route('login'), {
+        onFinish: () => form.reset('password'),
+    });
+};
+</script>
+
+<template>
+    <Head>Login</Head>
+
+    <Auth>
+        <v-card theme="dark" class="cartaAuth" id="cartaRegistro">
+            <v-container>
+                <v-card-title class="text-cyan-accent-2 mt-3">BIENVENIDO A MUSIC WORLD</v-card-title>
+                <v-form @submit.prevent="submit">
+
+
+                    <TextInput id="email" label="Correo electronico" type="email" v-model="form.email" required />
+                    <!-- <InputError :message="form.errors.email" /> -->
+
+                    <TextInput id="password" label="Contraseña" type="password" v-model="form.password" required />
+                    <!-- <InputError :message="form.errors.password" /> -->
+
+
+                    <v-card-actions>
+                        <div class="flex items-center justify-end">
+                            <Link :href="route('register')" class="text-decoration-none text-cyan-accent-2">
+                            ¿Aún no estás registrado?
+                            </Link>
+
+                            <BtnPrimary class="ml-4 bg-cyan-accent-2" :class="{ 'opacity-25': form.processing }"
+                                id="btnRegistro" :disabled="form.processing">
+                                Login
+                            </BtnPrimary>
+                        </div>
+                    </v-card-actions>
+                </v-form>
+            </v-container>
+        </v-card>
+    </Auth>
+</template>
+
+20. Nos vamos a crear una plantilla para la zona del dashboard y una carpeta dentro de views con las vistas del crud
+21. Creamos la migracion
+php artisan make:migration create_cars_table
+    Configuramos la tabla
+    $table->id();
+            $table->foreignId('user_id')->constrained();
+            $table->string("modelo");
+            $table->string("marca");
+            $table->timestamps();
+php artisan migrate
+
+22. Creamos el modelo
+php artisan make:model Car
+
+ protected $fillable = [
+        "user_id",
+        "modelo",
+        "marca",
+    ];
+
+23. Cremos el controller
+php artisan make:controller Carcontoller --resource
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Car;
+use Illuminate\Http\Request;
+use App\Providers\RouteServiceProvider;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Car;
+use Illuminate\Http\Request;
+use App\Providers\RouteServiceProvider;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+
+class CarController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index()
+    {
+        $cars = Car::all();
+
+        return Inertia::render('coches/Index', [
+            'coches' => $cars,
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        return Inertia::render('coches/Create');
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'modelo' => 'required|string|max:255',
+            'marca' => 'required|string|max:255',
+        ]);
+
+        $car = Car::create([
+            'user_id' => auth()->id(),
+            'modelo' => $request->modelo,
+            'marca' => $request->marca,
+        ]);
+
+        $car->save();
+
+        return redirect(RouteServiceProvider::HOME);
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+
+        $car = Car::find($id);
+
+        return Inertia::render('coches/Edit', ['coche' => $car]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id): RedirectResponse
+    {
+        $request->validate([
+            'modelo' => 'required|string|max:255',
+            'marca' => 'required|string|max:255',
+        ]);
+
+        Car::find($id)->update([
+            'modelo' => $request->modelo,
+            'marca' => $request->marca,
+        ]);
+
+
+        return redirect(RouteServiceProvider::HOME);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id): RedirectResponse
+    {
+        $car = Car::find($id);
+
+        $car->delete();
+
+        return redirect(RouteServiceProvider::HOME);
+    }
+}
+
+
+
+24. Configuramos las rutas en web.php
+Route::get('/coches', [CarController::class, 'index'])->middleware(['auth', 'verified'])->name('coche-index');
+
+
+Route::prefix('/coches')->group(function () {
+
+    Route::get('create', [CarController::class, 'create'])->name('coche-create');
+    Route::post('store', [CarController::class, 'store'])->name('coche-store');
+    Route::get('edit/{id}', [CarController::class, 'edit'])->name('coche-edit');
+    Route::post('update/{id}', [CarController::class, 'update'])->name('coche-update');
+    Route::get('destroy/{id}', [CarController::class, 'destroy'])->name('coche-destroy');
+});
+
+
+25. Creamos todas nuestras vistas para poder ejecutar toda la parte back
+
+AdminLayout 
+<script>
+import { Link } from '@inertiajs/vue3';
+
+export default {
+    data: () => ({
+        drawer: null,
+        links: [
+            ['mdi-inbox-arrow-down', 'Mi Música'],
+            ['mdi-send', 'Cerrar Sesión'],
+        ],
+    }),
+
+    components: {
+        Link
+    }
+}
+</script>
+
+<template>
+    <v-app id="inspire">
+
+        <v-navigation-drawer v-model="drawer" theme="dark">
+
+            <v-list>
+                <v-list-item prependIcon="mdi-car-back">
+                    <Link :href="route('coche-index')" class="text-white text-decoration-none">Mis coches
+                    </Link>
+                </v-list-item>
+                <v-list-item prependIcon="mdi-car-2-plus">
+                    <Link :href="route('coche-create')" class="text-white text-decoration-none">Añadir coche
+                    </Link>
+                </v-list-item>
+                <v-list-item prependIcon="mdi-logout">
+                    <Link :href="route('logout')" class="text-white text-decoration-none" method="post" as="button">
+                    Cerar Sesión
+                    </Link>
+                </v-list-item>
+            </v-list>
+        </v-navigation-drawer>
+
+        <v-main>
+            <v-system-bar class="pb-6 pt-6" color="grey-darken-4">
+                <v-spacer></v-spacer>
+                {{ $page.props.auth.user.name }}
+            </v-system-bar>
+            <v-container class="py-8 px-6" fluid>
+                <v-row>
+                    <slot></slot>
+                </v-row>
+            </v-container>
+        </v-main>
+    </v-app>
+
+</template>
+
+
+
+Index
+<script setup>
+import Admin from '@/Layouts/Admin.vue';
+import { Head, Link } from '@inertiajs/vue3';
+</script>
+
+<template>
+    <Head title="Dashboard" />
+
+    <Admin>
+
+        <v-container>
+            <v-row>
+                <v-col cols="lg-3 md-4 sm-6">
+                    <v-card theme="dark" class="mt-8" v-for="coche in $page.props.coches">
+
+                        <v-card-title>
+                            {{ coche.modelo }}
+                        </v-card-title>
+
+                        <v-card-subtitle>
+                            Marca: {{ coche.marca }}
+                        </v-card-subtitle>
+
+                        <v-card-actions>
+                            <v-btn prepend-icon="mdi-pencil" color="yellow" size="small">
+                                <Link :href="route('coche-edit', coche.id)" class="text-decoration-none text-yellow">
+                                edit
+                                </Link>
+                            </v-btn>
+                            <v-btn prepend-icon="mdi-delete" color="red-accent-4" size="small">
+                                <Link :href="route('coche-destroy', coche.id)"
+                                    class="text-decoration-none text-red-accent-4">
+                                delete
+                                </Link>
+                            </v-btn>
+
+                        </v-card-actions>
+                    </v-card>
+                </v-col>
+            </v-row>
+        </v-container>
+    </Admin>
+</template>
+
+
+
+
+create
+<script setup>
+import Admin from '@/Layouts/Admin.vue';
+import TextInput from '@/Components/TextInput.vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import BtnPrimary from '@/Components/BtnPrimary.vue'
+
+const form = useForm({
+    modelo: '',
+    marca: '',
+});
+
+const submit = () => {
+    form.post(route('coche-store'));
+};
+</script>
+
+<template>
+    <Head title="Create" />
+
+    <Admin>
+        <v-col cols="lg-12 md-12 sm-12">
+            <v-card theme="dark" class="cartaAuth" id="cartaRegistro">
+                <v-container>
+                    <v-card-title class="text-cyan-accent-2 mt-3">BIENVENIDO A MUSIC WORLD</v-card-title>
+                    <v-form @submit.prevent="submit">
+                        <TextInput id="modelo" label="Modelo coche" type="text" v-model="form.modelo" required autofocus />
+
+                        <TextInput id="marca" label="Marca coche" type="text" v-model="form.marca" required />
+
+                        <v-card-actions>
+                            <div class="flex items-center justify-end">
+                                <BtnPrimary class="ml-4 bg-cyan-accent-2" :class="{ 'opacity-25': form.processing }"
+                                    id="btnRegistro" :disabled="form.processing">
+                                    Agregar
+                                </BtnPrimary>
+                            </div>
+                        </v-card-actions>
+                    </v-form>
+                </v-container>
+            </v-card>
+        </v-col>
+    </Admin>
+</template>
+
+
+
+edit
+<script setup>
+import Admin from '@/Layouts/Admin.vue';
+import TextInput from '@/Components/TextInput.vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import BtnPrimary from '@/Components/BtnPrimary.vue'
+
+const form = useForm({
+    modelo: '',
+    marca: '',
+});
+
+const submit = (id) => {
+    form.post(route('coche-update', id));
+};
+</script>
+
+<template>
+    <Head title="Dashboard" />
+
+    <Admin>
+        <v-col cols="lg-12 md-12 sm-12">
+            <v-card theme="dark" class="cartaAuth" id="cartaRegistro">
+                <v-container>
+                    <v-card-title class="text-cyan-accent-2 mt-3">BIENVENIDO A MUSIC WORLD</v-card-title>
+                    <v-form @submit.prevent="submit($page.props.coche.id)">
+                        {{  }}
+                        <TextInput id="modelo" label="Modelo coche" type="text" v-model="form.modelo"
+                            v-model:model-value="$page.props.coche.modelo" required autofocus />
+
+                        <TextInput id="marca" label="Marca coche" type="text" v-model="form.marca"
+                            v-model:model-value="$page.props.coche.marca" required />
+
+                        <v-card-actions>
+                            <div class="flex items-center justify-end">
+                                <BtnPrimary class="ml-4 bg-cyan-accent-2" :class="{ 'opacity-25': form.processing }"
+                                    id="btnRegistro" :disabled="form.processing">
+                                    Editar
+                                </BtnPrimary>
+                            </div>
+                        </v-card-actions>
+                    </v-form>
+                </v-container>
+            </v-card>
+        </v-col>
+    </Admin>
+</template>
+
+
+26 Dentro de la carpeta providers en el fichero RouteServiceProvider cambiamos la ruta dashboard por la de nuestro Index
+public const HOME = '/coches';
+
+
+
